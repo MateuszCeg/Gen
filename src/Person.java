@@ -2,6 +2,7 @@ import java.time.LocalDate;
 import java.util.*;
 
 public class Person implements Comparable<Person>{
+
     private String firstName, lastName;
     private LocalDate birthDay;
     private Set<Person> children = new HashSet<>();

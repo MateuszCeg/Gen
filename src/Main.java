@@ -4,6 +4,7 @@ import java.util.List;
 
 public class Main {
     public static void main(String args[]){
+
         List<Person> personList = new ArrayList<>();
         Person kacper = new Person( "Kacper","Kowalski", LocalDate.of(2003,5,12));
         Person tom = new Person( "Tom","Candies", LocalDate.of(1998,10,5));
