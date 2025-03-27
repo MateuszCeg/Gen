@@ -1,5 +1,7 @@
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 public class Person implements Comparable<Person>{
@@ -25,6 +27,14 @@ public class Person implements Comparable<Person>{
                 if(x.compareTo(youngest)>0) youngest = x;
         }
         return youngest;
+    }
+
+    public List<Person> getChildren(){
+        List<Person> childs = new ArrayList<>();
+        childs.addAll(children);
+        childs.sort(Person::compareTo);
+        
+        return childs;
     }
 
     @Override
