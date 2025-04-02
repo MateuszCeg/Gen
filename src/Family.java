@@ -1,12 +1,23 @@
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 public class Family {
 
-    Map<String, Person> members;
+    Map<String, List<Person>> members;
     public void add(Person mem){
-        members.put(mem.getFirstName()+" "+mem.getLastName(),mem);
+        List<Person> test = new ArrayList<Person>();
+        test.add(mem);
+        members.put(mem.getFirstName()+" "+mem.getLastName(),test);
     }
-    public Person get(String str){
-        return members.get(str);
+    public void add(List<Person> mem){
+        for(Person a: mem){
+        members.put(a.getFirstName()+" "+a.getLastName(),mem);
+        }
+    }
+    public List<Person> get(String str){
+        List<Person> test = members.get(str);
+        test.sort(Person::compareTo);
+        return test;
     }
 }
