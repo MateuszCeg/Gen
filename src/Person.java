@@ -29,6 +29,7 @@ public class Person implements Comparable<Person>{
             deathD = LocalDate.parse(arr[2], format);
         }
 
+
         return new Person(name[0], name[1], birthD, deathD);
     }
     public static List<Person> fromCsv(String filePath) throws IOException {
@@ -41,14 +42,25 @@ public class Person implements Comparable<Person>{
             if (line == null) break;
             Person osob = Person.fromCsvLine(line);
             try {
+                for (Person x: personList){
+                    osob.sameLastFirstName(x);
+                }
                 osob.checkLifeSpan();
-            } catch (NegativeLifespanException e) {
-                System.err.println(e);
+                personList.add(osob);
+            } catch (NegativeLifespanException | AmbiguousPersonException e) {
+                System.err.println("Error xd:"+e);
             }
-            personList.add(osob);
+
         }
         return personList;
     }
+
+    private void sameLastFirstName(Person b) throws AmbiguousPersonException{
+        if(Objects.equals(b.getLastName(), this.getLastName()) && Objects.equals(b.getFirstName(), this.getFirstName())){
+            throw new AmbiguousPersonException(this);
+        }
+    }
+
     public void setFirstName(String firstName) {
         this.firstName = firstName;
     }
@@ -90,8 +102,12 @@ public class Person implements Comparable<Person>{
         return childs;
     }
 
-    void checkLifeSpan() throws NegativeLifespanException {
-        if ((this.birthDay.isAfter(this.deathDay)) || (this.deathDay==null)){
+    public void checkLifeSpan() throws NegativeLifespanException {
+        if (this.deathDay==null) {
+            //throw new NegativeLifespanException(this);
+            return;
+        }
+        if ((this.birthDay.isAfter(this.deathDay))){
             throw new NegativeLifespanException(this);
         }
     }
