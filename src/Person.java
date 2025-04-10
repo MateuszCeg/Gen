@@ -37,27 +37,53 @@ public class Person implements Comparable<Person>{
         BufferedReader fopen = new BufferedReader(file);
         List<Person> personList = new ArrayList<>();
         String line = fopen.readLine();
+        String[] parentName = new String[2];
         while(line!=null){
             line = fopen.readLine();
+
             if (line == null) break;
+
             Person osob = Person.fromCsvLine(line);
-            try {
-                for (Person x: personList){
-                    osob.sameLastFirstName(x);
+            String[] temp = line.split(",");
+            
+            if(temp.length >=5){
+                if (!(temp[3] == "" || temp[3] == null)) {
+                    parentName[0] = temp[3];
+                    String[] name = parentName[0].split(" ");
+                    for (Person x : personList) {
+                        if (Objects.equals(x.getFirstName(), name[0]) && Objects.equals(x.getLastName(), name[1])) {
+                            x.adopt(osob);
+                        }
+                    }
                 }
+
+                if (!(temp[4] == "" || temp[4] == null)) {
+                    parentName[1] = temp[4];
+                    String[] name = parentName[1].split(" ");
+                    for (Person x : personList) {
+                        if (Objects.equals(x.getFirstName(), name[0]) && Objects.equals(x.getLastName(), name[1])) {
+                            x.adopt(osob);
+                        }
+                    }
+                }
+            }
+            try {
+
+                osob.sameLastFirstName(personList);
                 osob.checkLifeSpan();
                 personList.add(osob);
             } catch (NegativeLifespanException | AmbiguousPersonException e) {
-                System.err.println("Error xd:"+e);
+                System.err.println("Error: "+e);
             }
-
         }
         return personList;
     }
 
-    private void sameLastFirstName(Person b) throws AmbiguousPersonException{
-        if(Objects.equals(b.getLastName(), this.getLastName()) && Objects.equals(b.getFirstName(), this.getFirstName())){
+    private void sameLastFirstName(List<Person> personList) throws AmbiguousPersonException{
+        for (Person x: personList){
+        if(Objects.equals(x.getLastName(), this.getLastName()) && Objects.equals(x.getFirstName(), this.getFirstName())) {
             throw new AmbiguousPersonException(this);
+        }
         }
     }
 
@@ -87,9 +113,9 @@ public class Person implements Comparable<Person>{
         if (children.isEmpty()) return null;
         Person youngest = null;
         for (Person x: children){
-                if (youngest==null)
-                    youngest = x;
-                if(x.compareTo(youngest)>0) youngest = x;
+            if (youngest==null)
+                youngest = x;
+            if(x.compareTo(youngest)>0) youngest = x;
         }
         return youngest;
     }
@@ -101,8 +127,12 @@ public class Person implements Comparable<Person>{
 
         return childs;
     }
-
-    public void checkLifeSpan() throws NegativeLifespanException {
+    public void parentAgeCheck(Person b) throws ParentingAgeException{
+        if((this.deathDay.getYear()-this.birthDay.getYear())<15 || (this.deathDay.isBefore(b.birthDay))){
+            throw new ParentingAgeException(this);
+        }
+    }
+    private void checkLifeSpan() throws NegativeLifespanException {
         if (this.deathDay==null) {
             //throw new NegativeLifespanException(this);
             return;
@@ -113,14 +143,21 @@ public class Person implements Comparable<Person>{
     }
     @Override
     public String toString() {
+        String str;
         if(deathDay == null) {
-            return firstName + " " + lastName + ", urodzony: " + birthDay;
+            str = firstName + " " + lastName + ", urodzony: " + birthDay;
         }
         else{
-            return firstName + " " + lastName + ", urodzony: " + birthDay + ", zgon:" + deathDay;
+            str = firstName + " " + lastName + ", urodzony: " + birthDay + ", zgon:" + deathDay;
         }
+        if (this.children.size() != 0){
+            str += " Dzieci: ";
+            for (Person x : children){
+                str += x.getLastName() + ", ";
+            }
+        }
+        return str;
     }
-
     @Override
     public int compareTo(Person o) {
 
