@@ -62,6 +62,7 @@ public class Main {
 
         Person.toBinaryFile(osoby, "family.bin");
         List<Person> loadPeople = Person.fromBinaryFile("family.bin");
+
         for(Person person: loadPeople)
             System.out.println(person);
 

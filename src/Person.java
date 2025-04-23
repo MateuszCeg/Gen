@@ -8,6 +8,7 @@ public class Person implements Comparable<Person>, Serializable{
     private LocalDate dataUrodzin, dataSmierci;
     private Set<Person> children;
 
+
     public Person(String imie, String nazwisko, LocalDate dataUrodzin, LocalDate dataSmierci) {
         this.imie = imie;
         this.nazwisko = nazwisko;
