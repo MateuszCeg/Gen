@@ -1,23 +1,42 @@
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+import java.util.*;
 public class Family {
+    //private Map<String, Person> members;
+    private Map<String, List<Person>> members;
 
-    Map<String, List<Person>> members;
-    public void add(Person mem){
-        List<Person> test = new ArrayList<Person>();
-        test.add(mem);
-        members.put(mem.getFirstName()+" "+mem.getLastName(),test);
+    public Family() {
+        this.members = new HashMap<>();
     }
-    public void add(List<Person> mem){
-        for(Person a: mem){
-        members.put(a.getFirstName()+" "+a.getLastName(),mem);
+
+//    public void add(Person person) {
+//        String key = person.toString().split(",")[0];
+//        members.put(key, person);
+//    }
+
+//    public void add(Person... people) {
+//        for (Person person : people) {
+//            String key = person.toString().split(",")[0];
+//            members.put(key, person);
+//        }
+//    }
+
+//    public Person get(String key) {
+//        return members.get(key);
+//    }
+
+    public void add(Person... people) {
+        for (Person person : people) {
+            String key = person.toString().split(",")[0];
+            members.putIfAbsent(key, new ArrayList<>());
+            members.get(key).add(person);
+            //members.get(key).sort(Comparator.naturalOrder());
         }
     }
-    public List<Person> get(String str){
-        List<Person> test = members.get(str);
-        test.sort(Person::compareTo);
-        return test;
+
+    public Person[] get(String key) {
+        List<Person> persons = members.getOrDefault(key, new ArrayList<>());
+        persons.sort(Comparator.naturalOrder());
+        return persons.toArray(new Person[1]);
     }
+    //W metodzie toArray(T[] a), jeśli przekazany argument (new Person[0]) ma rozmiar mniejszy niż liczba elementów w persons, to metoda utworzy nową tablicę odpowiedniego rozmiaru i zwróci ją.
+    //W przeciwnym razie (jeśli tablica byłaby wystarczająco duża), metoda po prostu użyłaby przekazanej tablicy.
 }

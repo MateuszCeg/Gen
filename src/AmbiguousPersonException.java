@@ -1,5 +1,5 @@
-public class AmbiguousPersonException extends Exception{
-    public AmbiguousPersonException(Person a) {
-        super("Imię " + a.getFirstName() +  " i nazwisko " + a.getLastName() + " powtarza się w pliku.");
+public class AmbiguousPersonException extends Exception {
+    public AmbiguousPersonException(String name) {
+        super("Znaleziono więcej niż jedną osobę o imieniu: " + name);
     }
 }

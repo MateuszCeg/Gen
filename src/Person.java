@@ -1,129 +1,198 @@
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
-import java.time.DateTimeException;
+import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+public class Person implements Comparable<Person>, Serializable{
+    private String imie;
+    private String nazwisko;
+    private LocalDate dataUrodzin, dataSmierci;
+    private Set<Person> children;
 
-public class Person implements Comparable<Person>{
-    private String firstName, lastName;
-    private LocalDate birthDay, deathDay;
-    private Set<Person> children = new HashSet<>();
-
-    public String getFirstName() {
-        return firstName;
+    public Person(String imie, String nazwisko, LocalDate dataUrodzin, LocalDate dataSmierci) {
+        this.imie = imie;
+        this.nazwisko = nazwisko;
+        this.dataUrodzin = dataUrodzin;
+        this.dataSmierci=dataSmierci;
+        this.children = new HashSet<>();
     }
 
-    public static Person fromCsvLine(String str){
-        String[] arr = str.split(",");
-        String[] name = arr[0].split(" ");
-        DateTimeFormatter format = DateTimeFormatter.ofPattern("dd.MM.yyyy");
-        LocalDate birthD = LocalDate.parse(arr[1], format);
-        LocalDate deathD;
-        if(arr[2] == "") {
-            deathD = null;
-        }
-        else {
-            deathD = LocalDate.parse(arr[2], format);
-        }
+    //lab6-start-------------------------------------------------------
 
+    public static Person fromCsvLine(String line) {
+        String[] fields = line.split(",");
+        String[] imieNazwisko = fields[0].split(" ");
 
-        return new Person(name[0], name[1], birthD, deathD);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd.MM.yyyy");
+
+        String birthString = fields[1];
+        String deathString = fields[2];
+        LocalDate birth = null, death = null;
+        if(!birthString.isEmpty())
+            birth = LocalDate.parse(birthString, formatter);
+        if(!deathString.isEmpty())
+            death = LocalDate.parse(deathString, formatter);
+
+        return new Person(imieNazwisko[0], imieNazwisko[1], birth, death);
     }
-    public static List<Person> fromCsv(String filePath) throws IOException {
-        FileReader file = new FileReader(filePath);
-        BufferedReader fopen = new BufferedReader(file);
-        List<Person> personList = new ArrayList<>();
-        String line = fopen.readLine();
-        while(line!=null){
-            line = fopen.readLine();
-            if (line == null) break;
-            Person osob = Person.fromCsvLine(line);
-            try {
-                for (Person x: personList){
-                    osob.sameLastFirstName(x);
+    public static List<Person> fromCsv(String path) throws IOException {
+        List<Person> result = new ArrayList<>();
+        try {
+            BufferedReader br = new BufferedReader(new FileReader(path));
+            Person person;
+            String line;
+            br.readLine();
+            String[] parentsName;
+            while ((line = br.readLine()) != null) {
+                person = Person.fromCsvLine(line);
+                person.validateLifespan();
+                person.validateAmbiguity(result);
+                result.add(person);
+                //br.close();
+                //dodanie dziecka do rodziców
+                parentsName = line.split(","); //skladowe 3 i 4
+                if (parentsName.length > 3) {
+                    if (parentsName[3] != "") {
+                        for (Person p : result) {
+                            if (parentsName.length > 3 && (p.imie + " " + p.nazwisko).equals(parentsName[3])) {
+                                p.adopt(person);
+                                p.validateParentingAge();
+                            }
+                        }
+                    }
+                    if (parentsName.length ==5) {
+                        for (Person p : result) {
+                            if ((p.imie + " " + p.nazwisko).equals(parentsName[4])) {
+                                p.adopt(person);
+                                p.validateParentingAge();
+                            }
+                        }
+                    }
                 }
-                osob.checkLifeSpan();
-                personList.add(osob);
-            } catch (NegativeLifespanException | AmbiguousPersonException e) {
-                System.err.println("Error xd:"+e);
             }
-
+        } catch (FileNotFoundException e) {
+            System.err.println("Plik " + path + " nie istnieje.");
+        } catch (NegativeLifespanException | AmbiguousPersonException | ParentingAgeException e) {
+            System.err.println(e.getMessage());
         }
-        return personList;
+        return result;
+    }
+    public String getImie() {
+        return imie;
+    }
+    public String getNazwisko() {
+        return nazwisko;
+    }
+    public LocalDate getDataUrodzin() {
+        return dataUrodzin;
+    }
+    public LocalDate getDataSmierci() {
+        return dataSmierci;
+    }
+    private void validateLifespan() throws NegativeLifespanException {
+        if(this.dataSmierci != null && this.dataUrodzin.isAfter(this.dataSmierci))
+            throw new NegativeLifespanException(this);
     }
 
-    private void sameLastFirstName(Person b) throws AmbiguousPersonException{
-        if(Objects.equals(b.getLastName(), this.getLastName()) && Objects.equals(b.getFirstName(), this.getFirstName())){
-            throw new AmbiguousPersonException(this);
+    private void validateAmbiguity(List<Person> peopleSoFar) throws AmbiguousPersonException {
+        for(Person person: peopleSoFar)
+            if((person.imie + " " + person.nazwisko).equals(this.imie + " " + this.nazwisko))
+                throw new AmbiguousPersonException(this.imie + " " + this.nazwisko);
+    }
+
+    private void validateParentingAge() throws ParentingAgeException {
+        for(Person child: children)
+            if (this.dataUrodzin.isAfter(child.dataUrodzin.minusYears(15)) || ( this.dataSmierci != null && child.dataUrodzin.isAfter(this.dataSmierci)))
+                throw new ParentingAgeException(child, this);
+    }
+
+    public static void toBinaryFile(List<Person> people, String filename) throws IOException {
+        try (//try-with-resources" - konstrukcja, która automatycznie zamyka strumienie po zakończeniu bloku try,
+             // strumienie muszą implementować interfejs AutoCloseable
+             FileOutputStream fos = new FileOutputStream(filename);
+             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
+            oos.writeObject(people);
         }
     }
 
-    public void setFirstName(String firstName) {
-        this.firstName = firstName;
+    public static List<Person> fromBinaryFile(String filename) throws IOException, ClassNotFoundException {
+        try (//try-with-resources" - konstrukcja, która automatycznie zamyka strumienie po zakończeniu bloku try,
+             // strumienie muszą implementować interfejs AutoCloseable
+             FileInputStream fis = new FileInputStream(filename);
+             ObjectInputStream ois = new ObjectInputStream(fis);
+        ) {
+            return (List<Person>) ois.readObject();
+        }
+
+        //wersja z try-finally
+//        FileInputStream fis = null;
+//        ObjectInputStream ois = null;
+//        try {
+//            fis = new FileInputStream(filename);
+//            ois = new ObjectInputStream(fis);
+//            return (List<Person>) ois.readObject();
+//        } finally {
+//            if (ois != null) {
+//                try {
+//                    ois.close();
+//                } catch (IOException e) {
+//                    // opcjonalnie obsługa błędu przy zamykaniu
+//                }
+//            }
+//            if (fis != null) {
+//                try {
+//                    fis.close();
+//                } catch (IOException e) {
+//                    // opcjonalnie obsługa błędu przy zamykaniu
+//                }
+//            }
+//        }
     }
 
-    public String getLastName() {
-        return lastName;
-    }
+    //lab6-end-----------------------------------------------------------
 
-    public void setLastName(String lastName) {
-        this.lastName = lastName;
-    }
-
-    public Person(String firstName, String lastName, LocalDate birthDay, LocalDate deathDay) {
-        this.firstName = firstName;
-        this.lastName = lastName;
-        this.birthDay = birthDay;
-        this.deathDay = deathDay;
-    }
-    public boolean adopt(Person child){
+    public boolean adopt(Person child) {
         return children.add(child);
     }
 
-    public Person getYoungestChild(){
-        if (children.isEmpty()) return null;
+//    public Person getYoungestChild() {
+//        return children.stream()
+//                .min((c1, c2) -> c2.dataUrodzin.compareTo(c1.dataUrodzin))
+//                .orElse(null);
+//    }
+
+    public Person getYoungestChild() {
         Person youngest = null;
-        for (Person x: children){
-                if (youngest==null)
-                    youngest = x;
-                if(x.compareTo(youngest)>0) youngest = x;
-        }
-        return youngest;
+//        if (children.isEmpty()) {
+//            return null;
+//        }
+//        for (Person child : children) {
+//            if (youngest == null || /*child.compareTo(youngest) > 0*/ child.dataUrodzin.isAfter(youngest.dataUrodzin)) {
+//                youngest = child;
+//            }
+//        }
+
+        return Collections.max(children,Comparator.naturalOrder());
     }
 
-    public List<Person> getChildren(){
-        List<Person> childs = new ArrayList<>();
-        childs.addAll(children);
-        Collections.sort(childs);
-
-        return childs;
-    }
-
-    public void checkLifeSpan() throws NegativeLifespanException {
-        if (this.deathDay==null) {
-            //throw new NegativeLifespanException(this);
-            return;
-        }
-        if ((this.birthDay.isAfter(this.deathDay))){
-            throw new NegativeLifespanException(this);
-        }
-    }
     @Override
     public String toString() {
-        if(deathDay == null) {
-            return firstName + " " + lastName + ", urodzony: " + birthDay;
+        if (children.isEmpty()){
+            return imie + " " + nazwisko + ", urodzony: " + dataUrodzin;
         }
-        else{
-            return firstName + " " + lastName + ", urodzony: " + birthDay + ", zgon:" + deathDay;
+        else {
+            return imie + " " + nazwisko + ", urodzony: " + dataUrodzin + " dzieci: " + children;
         }
     }
 
     @Override
-    public int compareTo(Person o) {
+    public int compareTo(Person other) {
+        //zero dla równych, ujemna dla daty wcześniejszej, dodatnia dla daty późniejszej
+        return this.dataUrodzin.compareTo(other.dataUrodzin);
+    }
 
-        return this.birthDay.compareTo(o.birthDay);
+    public List<Person> getChildren() {
+        List<Person> sortedChildren = new ArrayList<>(children);
+        Collections.sort(sortedChildren);
+        return sortedChildren;
     }
 }
