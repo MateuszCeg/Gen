@@ -2,6 +2,9 @@ import java.io.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Consumer;
+import java.util.function.Function;
+
 public class Person implements Comparable<Person>, Serializable{
     private String imie;
     private String nazwisko;
@@ -195,5 +198,38 @@ public class Person implements Comparable<Person>, Serializable{
         List<Person> sortedChildren = new ArrayList<>(children);
         Collections.sort(sortedChildren);
         return sortedChildren;
+    }
+    public String toPlantuml(){
+        String pattern = "@startuml\n%s\n%s\n@enduml";
+        StringBuilder objects = new StringBuilder();
+        StringBuilder relations = new StringBuilder();
+        Function<String, String> addObject = (s) -> {return "object \"" + s + "\" as " + s.replaceAll(" ", "") + "\n"; };
+        Function<String[], String> addRelation = (s) -> s[0].replaceAll(" ", "")+"<--"+s[1].replaceAll(" ", "")+"\n";
+        objects.append(addObject.apply(this.imie+" "+this.nazwisko));
+        String[] relation = new String[]{this.imie + " " + this.nazwisko, null};
+        for (Person child: children){
+            objects.append(addObject.apply(child.imie+" "+child.nazwisko));
+            relation[1] = child.imie+" "+child.nazwisko;
+            relations.append(addRelation.apply(relation));
+        }
+        return String.format(pattern, objects , relations);
+    }
+    public static String toPlantumlList(List<Person> personList){
+        String pattern = "@startuml\n%s\n%s\n@enduml";
+        StringBuilder objects = new StringBuilder();
+        StringBuilder relations = new StringBuilder();
+        Function<String, String> addObject = (s) -> {return "object \"" + s + "\" as " + s.replaceAll(" ", "") + "\n"; };
+        Function<String[], String> addRelation = (s) -> s[0].replaceAll(" ", "")+"<--"+s[1].replaceAll(" ", "")+"\n";
+        Consumer<Person> addPersonData = (p) -> {
+            objects.append(addObject.apply(p.imie+" "+p.nazwisko));
+            String[] relation = new String[]{p.imie + " " + p.nazwisko, null};
+            for (Person child: p.children){
+                objects.append(addObject.apply(child.imie+" "+child.nazwisko));
+                relation[1] = child.imie+" "+child.nazwisko;
+                relations.append(addRelation.apply(relation));
+            }
+            };
+        personList.forEach(addPersonData);
+        return String.format(pattern, objects , relations);
     }
 }
