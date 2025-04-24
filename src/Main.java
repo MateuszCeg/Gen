@@ -7,15 +7,15 @@ public class Main {
     public static void main(String[] args) throws IOException, ClassNotFoundException {
 
         List<Person> osoby = new ArrayList<>();
-//            Person jan = new Person("Jan", "Kowalski", LocalDate.of(1990, 5, 20),null);
+            Person jan = new Person("Jan", "Kowalski", LocalDate.of(1990, 5, 20),null);
 //            Person anna = new Person("Anna", "Nowak", LocalDate.of(1985, 10, 15),null);
-//            Person piotr = new Person("Piotr", "Zielinski", LocalDate.of(2000, 3, 8),null);
+            Person piotr = new Person("Piotr", "Zielinski", LocalDate.of(2000, 3, 8),null);
 //
 //            osoby.add(jan);
 //            osoby.add(anna);
 //            osoby.add(piotr);
 //
-//            boolean adoptionSuccess = jan.adopt(piotr);
+            boolean adoptionSuccess = jan.adopt(piotr);
 //            System.out.println("Adopcja udana: " + adoptionSuccess);
 //
 //            for (Person osoba : osoby) {
@@ -66,6 +66,8 @@ public class Main {
         for(Person person: loadPeople)
             System.out.println(person);
 
-    }
+        PlantUMLRunner.filePathSetter("plantuml.jar");
+        PlantUMLRunner.generate(jan.toPlantuml(),"wynik","Out");
 
+    }
 }
