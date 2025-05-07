@@ -218,18 +218,30 @@ public class Person implements Comparable<Person>, Serializable{
         String pattern = "@startuml\n%s\n%s\n@enduml";
         StringBuilder objects = new StringBuilder();
         StringBuilder relations = new StringBuilder();
-        Function<String, String> addObject = (s) -> {return "object \"" + s + "\" as " + s.replaceAll(" ", "") + "\n"; };
-        Function<String[], String> addRelation = (s) -> s[0].replaceAll(" ", "")+"<--"+s[1].replaceAll(" ", "")+"\n";
+        Function<String, String> addObject = (s) ->
+        {return "object \"" + s + "\" as " + s.replaceAll(" ", "") + "\n"; };
+        Function<String[], String> addRelation = (s) ->
+                s[0].replaceAll(" ", "")+"<--"+s[1].replaceAll(" ", "")+"\n";
         Consumer<Person> addPersonData = (p) -> {
             objects.append(addObject.apply(p.imie+" "+p.nazwisko));
             String[] relation = new String[]{p.imie + " " + p.nazwisko, null};
             for (Person child: p.children){
-                objects.append(addObject.apply(child.imie+" "+child.nazwisko));
                 relation[1] = child.imie+" "+child.nazwisko;
                 relations.append(addRelation.apply(relation));
             }
             };
         personList.forEach(addPersonData);
         return String.format(pattern, objects , relations);
+    }
+    public static List<Person> checkSubString(List<Person> personList, String subString){
+        Function<List<Person>,List<Person>> checkSubString = (s) -> {
+            List<Person> endPersons = new ArrayList<>();
+            for (Person x : s) {
+                String imie = x.getImie()+x.getNazwisko();
+
+            }
+            return endPersons;
+        };
+        return checkSubString.apply(personList);
     }
 }
