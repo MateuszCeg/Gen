@@ -72,5 +72,8 @@ public class Main {
         PlantUMLRunner.generate(jan.toPlantuml(),"wynik","Out");
         PlantUMLRunner.generate(Person.toPlantumlList(osoby),"wynik","Out");
 
+
+        List<Person> osoby2 = Person.checkSubString(osoby,"ko");
+        System.out.println(osoby2);
     }
 }

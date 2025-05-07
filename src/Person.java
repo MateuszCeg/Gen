@@ -238,7 +238,9 @@ public class Person implements Comparable<Person>, Serializable{
             List<Person> endPersons = new ArrayList<>();
             for (Person x : s) {
                 String imie = x.getImie()+x.getNazwisko();
-
+                if(imie.toLowerCase().contains(subString.toLowerCase())){
+                    endPersons.add(x);
+                }
             }
             return endPersons;
         };
