@@ -2,20 +2,21 @@ import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Function;
 
 public class Main {
     public static void main(String[] args) throws IOException, ClassNotFoundException {
 
         List<Person> osoby = new ArrayList<>();
-            Person jan = new Person("Jan", "Kowalski", LocalDate.of(1990, 5, 20),null);
-            Person anna = new Person("Anna", "Nowak", LocalDate.of(1985, 10, 15),null);
-            Person piotr = new Person("Piotr", "Zielinski", LocalDate.of(2000, 3, 8),null);
+        Person jan = new Person("Jan", "Kowalski", LocalDate.of(1990, 5, 20),null);
+        Person anna = new Person("Anna", "Nowak", LocalDate.of(1985, 10, 15),null);
+        Person piotr = new Person("Piotr", "Zielinski", LocalDate.of(2000, 3, 8),null);
 //
-            osoby.add(jan);
-            osoby.add(anna);
-            osoby.add(piotr);
+        osoby.add(jan);
+        osoby.add(anna);
+        osoby.add(piotr);
 //
-            boolean adoptionSuccess = jan.adopt(piotr);
+        boolean adoptionSuccess = jan.adopt(piotr);
 //            System.out.println("Adopcja udana: " + adoptionSuccess);
 //
 //            for (Person osoba : osoby) {
@@ -68,12 +69,19 @@ public class Main {
 
         System.out.println("_____________Zapis i odczyt listy obiektów Person - pliki binarne__________________________________________");
 
+        Function<String,String> nothing = (str)-> str;
+
+        Function<String,String> yellowClass = (str)-> str+" #666666 \n";
+
         PlantUMLRunner.filePathSetter("plantuml.jar");
-        PlantUMLRunner.generate(jan.toPlantuml(),"wynik","Out");
-        PlantUMLRunner.generate(Person.toPlantumlList(osoby),"wynik","Out");
+        PlantUMLRunner.generate(jan.toPlantUMLTree(yellowClass),"wynik","Out");
+        //PlantUMLRunner.generate(Person.toPlantUMLTree(osoby),"wynik","Out");
 
 
-        List<Person> osoby2 = Person.checkSubString(osoby,"ko");
-        System.out.println(osoby2);
+        List<Person> osoby2 = Person.sortByLifeTime(osoby);
+        System.out.println("\n ENDL \n"+Person.selectOldest(osoby)+"\n\n");
+        for (Person x: osoby2){
+            System.out.println(x);
+        }
     }
 }
