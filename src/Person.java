@@ -4,13 +4,14 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 public class Person implements Comparable<Person>, Serializable{
     private String imie;
     private String nazwisko;
     private LocalDate dataUrodzin, dataSmierci;
     private Set<Person> children;
-
 
     public Person(String imie, String nazwisko, LocalDate dataUrodzin, LocalDate dataSmierci) {
         this.imie = imie;
@@ -19,7 +20,6 @@ public class Person implements Comparable<Person>, Serializable{
         this.dataSmierci=dataSmierci;
         this.children = new HashSet<>();
     }
-
     //lab6-start-------------------------------------------------------
 
     public static Person fromCsvLine(String line) {
@@ -54,21 +54,17 @@ public class Person implements Comparable<Person>, Serializable{
                 //br.close();
                 //dodanie dziecka do rodziców
                 parentsName = line.split(","); //skladowe 3 i 4
-                if (parentsName.length > 3) {
-                    if (parentsName[3] != "") {
-                        for (Person p : result) {
-                            if (parentsName.length > 3 && (p.imie + " " + p.nazwisko).equals(parentsName[3])) {
-                                p.adopt(person);
-                                p.validateParentingAge();
-                            }
+                if(parentsName.length>3) {
+                    for (Person p : result) {
+                        if ((p.imie + " " + p.nazwisko).equals(parentsName[3])) {
+                            p.adopt(person);
+                            p.validateParentingAge();
+
                         }
-                    }
-                    if (parentsName.length ==5) {
-                        for (Person p : result) {
-                            if ((p.imie + " " + p.nazwisko).equals(parentsName[4])) {
-                                p.adopt(person);
-                                p.validateParentingAge();
-                            }
+                        if (parentsName.length == 5 && (p.imie + " " + p.nazwisko).equals(parentsName[4])) {
+                            p.adopt(person);
+                            p.validateParentingAge();
+
                         }
                     }
                 }
@@ -110,46 +106,21 @@ public class Person implements Comparable<Person>, Serializable{
     }
 
     public static void toBinaryFile(List<Person> people, String filename) throws IOException {
-        try (//try-with-resources" - konstrukcja, która automatycznie zamyka strumienie po zakończeniu bloku try,
-             // strumienie muszą implementować interfejs AutoCloseable
-             FileOutputStream fos = new FileOutputStream(filename);
-             ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-            oos.writeObject(people);
-        }
+
+        FileOutputStream fos = new FileOutputStream(filename);
+        ObjectOutputStream oos = new ObjectOutputStream(fos);
+
+        oos.writeObject(people);
+
     }
 
     public static List<Person> fromBinaryFile(String filename) throws IOException, ClassNotFoundException {
-        try (//try-with-resources" - konstrukcja, która automatycznie zamyka strumienie po zakończeniu bloku try,
-             // strumienie muszą implementować interfejs AutoCloseable
-             FileInputStream fis = new FileInputStream(filename);
-             ObjectInputStream ois = new ObjectInputStream(fis);
+        try (
+                FileInputStream fis = new FileInputStream(filename);
+                ObjectInputStream ois = new ObjectInputStream(fis);
         ) {
             return (List<Person>) ois.readObject();
         }
-
-        //wersja z try-finally
-//        FileInputStream fis = null;
-//        ObjectInputStream ois = null;
-//        try {
-//            fis = new FileInputStream(filename);
-//            ois = new ObjectInputStream(fis);
-//            return (List<Person>) ois.readObject();
-//        } finally {
-//            if (ois != null) {
-//                try {
-//                    ois.close();
-//                } catch (IOException e) {
-//                    // opcjonalnie obsługa błędu przy zamykaniu
-//                }
-//            }
-//            if (fis != null) {
-//                try {
-//                    fis.close();
-//                } catch (IOException e) {
-//                    // opcjonalnie obsługa błędu przy zamykaniu
-//                }
-//            }
-//        }
     }
 
     //lab6-end-----------------------------------------------------------
@@ -180,12 +151,7 @@ public class Person implements Comparable<Person>, Serializable{
 
     @Override
     public String toString() {
-        if (children.isEmpty()){
-            return imie + " " + nazwisko + ", urodzony: " + dataUrodzin;
-        }
-        else {
-            return imie + " " + nazwisko + ", urodzony: " + dataUrodzin + " dzieci: " + children;
-        }
+        return imie + " " + nazwisko + ", urodzony: " + dataUrodzin + " dzieci: " + children;
     }
 
     @Override
@@ -199,51 +165,93 @@ public class Person implements Comparable<Person>, Serializable{
         Collections.sort(sortedChildren);
         return sortedChildren;
     }
-    public String toPlantuml(){
-        String pattern = "@startuml\n%s\n%s\n@enduml";
+
+    /*------------------lab 7-start-----------------------------------------------------*/
+    public String toPlantUMLTree(Function<String, String> postProcess) {
+        String result = "@startuml\n%s\n%s\n@enduml";
+        Function<String, String> objectLine = str -> String.format("object \"%s\" as %s",str, str.replaceAll(" ", ""));
+        Function<String[], String> relationLine = str -> {return String.format("%s<--%s\n",str[0],str[1]) ;};
+        Function<String, String> objectLinepostProcess = objectLine.andThen(postProcess);
         StringBuilder objects = new StringBuilder();
         StringBuilder relations = new StringBuilder();
-        Function<String, String> addObject = (s) -> {return "object \"" + s + "\" as " + s.replaceAll(" ", "") + "\n"; };
-        Function<String[], String> addRelation = (s) -> s[0].replaceAll(" ", "")+"<--"+s[1].replaceAll(" ", "")+"\n";
-        objects.append(addObject.apply(this.imie+" "+this.nazwisko));
-        String[] relation = new String[]{this.imie + " " + this.nazwisko, null};
-        for (Person child: children){
-            objects.append(addObject.apply(child.imie+" "+child.nazwisko));
-            relation[1] = child.imie+" "+child.nazwisko;
-            relations.append(addRelation.apply(relation));
+        objects.append(objectLinepostProcess.apply(imie + " " + nazwisko));
+
+        for(Person child: children) {
+            objects.append(objectLinepostProcess.apply(child.imie + " " + child.nazwisko));
+            String[] relation = new String[]{imie+nazwisko,child.imie+child.nazwisko};
+            relations.append(relationLine.apply(relation));
         }
-        return String.format(pattern, objects , relations);
+        return String.format(result, objects, relations);
     }
-    public static String toPlantumlList(List<Person> personList){
-        String pattern = "@startuml\n%s\n%s\n@enduml";
+
+    public static String toPlantUMLTree(List<Person> people) {
+        String result = "@startuml\n%s\n%s\n@enduml";
+        Function<String, String> objectLine = str -> String.format("object \"%s\" as %s\n", str, str.replaceAll(" ", ""));
+        Function<String[], String> relationLine = pair -> String.format("%s<--%s\n", pair[0], pair[1]);
+
         StringBuilder objects = new StringBuilder();
         StringBuilder relations = new StringBuilder();
-        Function<String, String> addObject = (s) ->
-        {return "object \"" + s + "\" as " + s.replaceAll(" ", "") + "\n"; };
-        Function<String[], String> addRelation = (s) ->
-                s[0].replaceAll(" ", "")+"<--"+s[1].replaceAll(" ", "")+"\n";
-        Consumer<Person> addPersonData = (p) -> {
-            objects.append(addObject.apply(p.imie+" "+p.nazwisko));
-            String[] relation = new String[]{p.imie + " " + p.nazwisko, null};
-            for (Person child: p.children){
-                relation[1] = child.imie+" "+child.nazwisko;
-                relations.append(addRelation.apply(relation));
+        Set<String> addedObjects = new HashSet<>();
+        Set<String> addedRelations = new HashSet<>();
+
+        Consumer<Person> addPerson = person -> {
+            String personKey = person.getImie() + " " + person.getNazwisko();
+            if (addedObjects.add(personKey)) {
+                objects.append(objectLine.apply(personKey));
             }
-            };
-        personList.forEach(addPersonData);
-        return String.format(pattern, objects , relations);
-    }
-    public static List<Person> checkSubString(List<Person> personList, String subString){
-        Function<List<Person>,List<Person>> checkSubString = (s) -> {
-            List<Person> endPersons = new ArrayList<>();
-            for (Person x : s) {
-                String imie = x.getImie()+x.getNazwisko();
-                if(imie.toLowerCase().contains(subString.toLowerCase())){
-                    endPersons.add(x);
+
+            for (Person child : person.getChildren()) {
+                String childKey = child.getImie() + " " + child.getNazwisko();
+                if (addedObjects.add(childKey)) {
+                    objects.append(objectLine.apply(childKey));
+                }
+
+                String[] relationPair = new String[] { person.imie+person.nazwisko, child.imie+child.nazwisko };
+                String relationStr = relationLine.apply(relationPair);
+                if (addedRelations.add(relationStr)) {
+                    relations.append(relationStr);
                 }
             }
-            return endPersons;
         };
-        return checkSubString.apply(personList);
+
+        people.forEach(addPerson);
+
+        return String.format(result, objects, relations);
+    }
+
+    public static List<Person> compareSubString(List<Person> people, String subString) {
+        List<Person> endList = new ArrayList<>();
+        Consumer<Person> comparePerson = person -> {
+            String name = person.getImie()+person.getNazwisko();
+            if (name.contains(subString)){
+                endList.add(person);
+            }
+        };
+        people.forEach(comparePerson);
+        return people.stream()
+                .filter(person -> person.getNazwisko().contains(subString))
+                .collect(Collectors.toList());
+    }
+
+    public static List<Person> sortBirthDate(List<Person> people) {
+
+        return people.stream()
+                .sorted(Person::compareTo)
+                .toList();
+    }
+    public static List<Person> sortByLifeTime(List<Person> people) {
+        return people.stream()
+                .filter(person -> (person.getDataSmierci()!=null))
+                .sorted((p1,p2) ->{
+                    long date1 = p1.dataUrodzin.toEpochDay()-p1.getDataSmierci().toEpochDay();
+                    long date2 = p2.dataUrodzin.toEpochDay()-p2.getDataSmierci().toEpochDay();
+                    return Long.compare(date2,date1);
+                })
+                .collect(Collectors.toList());
+    }
+    public static Person selectOldest(List<Person> people) {
+        return people.stream()
+                .filter(person -> (person.getDataSmierci()==null))
+                .min(Comparator.comparing(p -> p.dataUrodzin)).orElse(null);
     }
 }
